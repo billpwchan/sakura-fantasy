@@ -7,9 +7,9 @@
 <p><b>A boat journey through a Japanese river valley, in four seasons and at any hour,<br>rendered live in the browser.</b></p>
 
 <p>
-<a href="https://sakura.52-198-144-26.sslip.io/"><b>Take the journey</b></a> &nbsp;·&nbsp;
-<a href="docs/ARCHITECTURE.md">How it works</a> &nbsp;·&nbsp;
-<a href="docs/SOUND.md">The score</a> &nbsp;·&nbsp;
+<a href="https://sakura.52-198-144-26.sslip.io/"><b>Take&nbsp;the&nbsp;journey</b></a> &nbsp;·&nbsp;
+<a href="docs/ARCHITECTURE.md">How&nbsp;it&nbsp;works</a> &nbsp;·&nbsp;
+<a href="docs/SOUND.md">The&nbsp;score</a> &nbsp;·&nbsp;
 <a href="README.zh-CN.md">中文</a> &nbsp;·&nbsp;
 <a href="README.ja.md">日本語</a>
 </p>
