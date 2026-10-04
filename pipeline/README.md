@@ -9,12 +9,12 @@ are git-ignored, so expect to fetch sources and adjust a path or two.
 
 ```
 pipeline/
-├── fetch_scan.sh      download a Sketchfab scan into skfb/<uid>      (needs your own SKFB_KEY)
+├── fetch_scan.sh      download a Sketchfab scan into skfb/<uid> (needs your own SKFB_KEY)
 ├── veg/               plant atlases: Blender renders of CC0 scans, composed into public/assets/tex
-├── figs/              the boatman and the passenger (MPFB bodies, garments built in code), the wagasa
+├── figs/              the boatman and passenger (MPFB bodies, garments built in code), wagasa
 ├── boat/              the tomabune, built plank by plank
 ├── node/              glTF and texture processing: props, KTX2 tiers, packing (npm install here)
-├── audio/             the score's instruments and the field recordings, cut and mastered into public/assets/audio
+├── audio/             instruments and field recordings, cut and mastered into public/assets/audio
 │
 ├── skfb/   phm/       downloaded scans / Poly Haven models          (ignored)
 └── tools/ktxroot/     KTX-Software install, for toktx               (ignored)
@@ -65,11 +65,11 @@ Everything is then skinned to the game-engine rig. At runtime the boatman's arms
 
 ```sh
 export BLENDER_USER_RESOURCES=/path/to/isolated/profile   # where MPFB is installed
-blender -b --python figs/man.py -- man.glb                 # posed body -> man.blend
+blender -b --python figs/man.py -- man.glb  # posed body -> man.blend
 blender -b man.blend --python figs/man_dress.py -- man_full.glb
-blender -b --python figs/pas.py -- pas.glb                 # then pas_dress.py and pas_dress2.py, as their headers say
+blender -b --python figs/pas.py -- pas.glb  # then pas_dress.py, pas_dress2.py
 blender -b --python figs/wagasa.py -- wagasa.glb
-figs/pack.sh                                               # KTX2 + meshopt -> public/assets/models/figures
+figs/pack.sh                                # KTX2 + meshopt -> public/assets/models/figures
 ```
 
 ## 3 · Boat (`boat/`)

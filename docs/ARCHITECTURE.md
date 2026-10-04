@@ -6,14 +6,14 @@ runtime dependency is three.js.
 
 ```
 src/
-├── main.js              boot, the frame loop, input, the glue between systems
-├── core/                renderer passes (pipeline.js), post chain (post.js), shared uniforms, texture loading
-├── env/                 time of day, season and weather → the shared uniforms
-├── world/               valley layout, terrain, water, trees, grass, buildings, props, boat, people, sky
-├── fx/                  petals, leaves, snow, rain, fireflies, wisps, lanterns, fireworks
-├── journey/             the voyage, the camera director, the haiku
-├── audio/               the generative score and soundscape
-└── ui/                  loader, title, chapter cards, kanji dock, About, photo mode
+├── main.js        boot, the frame loop, input, the glue between systems
+├── core/          renderer passes (pipeline.js), post chain (post.js), shared uniforms, textures
+├── env/           time of day, season and weather → the shared uniforms
+├── world/         valley layout, terrain, water, trees, grass, buildings, props, boat, people, sky
+├── fx/            petals, leaves, snow, rain, fireflies, wisps, lanterns, fireworks
+├── journey/       the voyage, the camera director, the haiku
+├── audio/         the generative score and soundscape
+└── ui/            loader, title, chapter cards, kanji dock, About, photo mode
 ```
 
 ## 1 · One set of uniforms
