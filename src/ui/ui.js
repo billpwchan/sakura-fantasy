@@ -1,6 +1,7 @@
 // The interface: an ink-circle loader, the opening title, chapter cards that ink themselves in with the place's
 // haiku and the poet's seal, the scroll of the journey, a kanji dock for season, hour, weather, camera and sound,
-// the page-turn between seasons, and a photo mode.
+// the page-turn between seasons, and a photo mode. The address bar always holds the current place, season and, when
+// set by hand, hour and weather, so a copied link opens on the same view.
 import './ui.css';
 import { PLACES } from '../world/layout.js';
 import { HAIKU, POETS, SEASON_CARDS } from '../journey/haiku.js';
@@ -20,6 +21,8 @@ const GLYPH = { asagiri: '朝', sakura: '桜', bridge: '橋', village: '塔', go
 const SEASON_BTN = [['春', 'Spring'], ['夏', 'Summer'], ['秋', 'Autumn'], ['冬', 'Winter']];
 const WEATHER_BTN = [['clear', '晴', 'Clear'], ['mist', '霧', 'Mist'], ['rain', '雨', 'Rain'], ['storm', '嵐', 'Storm'], ['snow', '雪', 'Snow']];
 const CAM_BTN = [['follow', '随', 'Follow'], ['seat', '座', 'Passenger'], ['cinema', '映', 'Cinematic']];
+const REPO = 'https://github.com/billpwchan/sakura-fantasy';
+const SITE = 'sakura.billpwchan.art';
 
 // washi fibre, drawn once as an SVG noise tile
 const FIBRE = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='3' seed='4' result='c'/><feTurbulence type='fractalNoise' baseFrequency='0.55 0.11' numOctaves='2' seed='9' result='h'/><feComposite in='h' in2='c' operator='arithmetic' k2='0.35' k3='0.65'/><feColorMatrix values='0 0 0 0 0.6  0 0 0 0 0.54  0 0 0 0 0.46  0 0 0 0.32 0'/></filter><rect width='100%' height='100%' filter='url(#f)'/></svg>`)}")`;
@@ -35,6 +38,8 @@ export class UI {
     this.cardTimer = null;
     this.dragging = false;
     this.pending = null;
+    this.urlAt = 0;
+    this.urlKey = '';
   }
 
   attach(app) {
@@ -78,6 +83,8 @@ export class UI {
     foot.appendChild(this.go);
     stage.appendChild(foot);
     L.appendChild(stage);
+    L.appendChild($('a', 'src', `<span class="star">☆</span>Open source on GitHub`));
+    Object.assign(L.lastChild, { href: REPO, target: '_blank', rel: 'noopener' });
     for (let i = 0; i < 14; i++) {
       const p = $('div', 'petal');
       p.style.left = `${10 + Math.random() * 100}vw`;
@@ -230,7 +237,7 @@ export class UI {
       <div class="kana">${chars(place.kana, 0.9, 0.04)}</div>
       <div class="num">${chars('第' + NUM[idx] + '景', 0.6, 0.08)}</div>
       <div class="haiku">${h.jp.map((l, i) => `<div class="line">${chars(l, 1.7 + i * 0.75, 0.07)}</div>`).join('')}<div class="poet"><div class="who">${chars(poet.jp, 4.0, 0.1)}</div><div class="seal" style="animation-delay:4.5s">${poet.seal}</div></div></div></div>
-      <div class="en"><div class="place mask" style="animation-delay:1.2s">${place.en}</div><div class="verse mask" style="animation-delay:3.4s">${h.en.join('<br>')}</div><div class="by mask" style="animation-delay:4.6s">— ${poet.en}</div></div>`;
+      <div class="en"><div class="place mask" style="animation-delay:1.2s">${place.en}</div><div class="verse mask" style="animation-delay:3.4s">${h.en.join('<br>')}</div><div class="by mask" style="animation-delay:4.6s">— ${poet.en}</div>${place.id === 'lake' ? `<a class="src mask" href="${REPO}" target="_blank" rel="noopener" style="animation-delay:5.6s"><span class="star">☆</span>The river is open source — GitHub</a>` : ''}</div>`;
     this.root.appendChild(c);
     this.card = c;
     this.scrimR.classList.add('on');
@@ -352,12 +359,15 @@ export class UI {
     this.sailBtn = btn(ro, '止', 'Moor', () => this.app.togglePause());
     this.soundBtn = btn(ro, '音', 'Sound', () => this.app.toggleSound());
     btn(ro, '写', 'Photograph', () => this.photo(true));
+    btn(ro, '伝', 'Share this view', () => this.share());
     btn(ro, '記', 'About', () => this.about.classList.add('on'));
     R.appendChild(d);
     document.addEventListener('pointerdown', (e) => { if (!d.contains(e.target)) d.querySelectorAll('.grp.open').forEach((x) => x.classList.remove('open')); });
 
     this.hints = $('div', 'hints', '<span><kbd>W S</kbd>速さ</span><span><kbd>A D</kbd>舵</span><span><kbd>Drag</kbd>見回す</span><span><kbd>Wheel</kbd>寄る</span><span><kbd>C</kbd>視点</span><span><kbd>Space</kbd>止まる</span>');
     R.appendChild(this.hints);
+    this.toastEl = $('div', 'toast');
+    R.appendChild(this.toastEl);
 
     // page of the scroll, veil, flash
     this.paper = $('div', 'paper');
@@ -419,6 +429,7 @@ export class UI {
   async shoot() {
     this.photoEl.classList.remove('on');
     await new Promise((r) => requestAnimationFrame(r));
+    await Promise.all([document.fonts.load('italic 500 32px "Cormorant Garamond"'), document.fonts.load('800 32px "Shippori Mincho B1"')]).catch(() => {});
     const blob = await this.app.capture();
     this.flash.classList.remove('go');
     void this.flash.offsetWidth;
@@ -432,6 +443,77 @@ export class UI {
     a.download = `sakura-fantasy-${stamp}.png`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+
+  // the photograph carries its address: a small seal and the site's name in the lower right, like a print's chop
+  stamp(src) {
+    const W = src.width, H = src.height, c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    g.drawImage(src, 0, 0);
+    const k = Math.min(W, H) / 1080, m = Math.round(30 * k), s = Math.round(28 * k);
+    const x = W - m - s, y = H - m - s;
+    g.save();
+    g.translate(x + s / 2, y + s / 2);
+    g.rotate(-0.07);
+    g.shadowColor = 'rgba(0, 0, 0, 0.35)'; g.shadowBlur = 10 * k; g.shadowOffsetY = 3 * k;
+    g.fillStyle = '#c8402a';
+    g.fillRect(-s / 2, -s / 2, s, s);
+    g.shadowColor = 'transparent';
+    g.fillStyle = '#fff3ea';
+    g.font = `800 ${Math.round(17 * k)}px "Shippori Mincho B1", "Hiragino Mincho ProN", serif`;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('桜', 0, 1 * k);
+    g.restore();
+    g.font = `italic 500 ${Math.round(17 * k)}px "Cormorant Garamond", "Times New Roman", serif`;
+    if ('letterSpacing' in g) g.letterSpacing = `${(2.6 * k).toFixed(1)}px`;
+    g.textAlign = 'right'; g.textBaseline = 'middle';
+    g.shadowColor = 'rgba(0, 0, 0, 0.55)'; g.shadowBlur = 8 * k;
+    g.fillStyle = 'rgba(243, 237, 226, 0.86)';
+    g.fillText(SITE, x - 14 * k, y + s / 2 + 1 * k);
+    return c;
+  }
+
+  // a link to this very view: the share sheet on a phone, the clipboard elsewhere
+  async share() {
+    const url = this.app.shareUrl();
+    if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+      try { await navigator.share({ title: document.title, url }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    let ok = false;
+    try { await navigator.clipboard.writeText(url); ok = true; } catch (e) {
+      const t = Object.assign(document.createElement('textarea'), { value: url });
+      Object.assign(t.style, { position: 'fixed', opacity: '0' });
+      document.body.appendChild(t);
+      t.select();
+      try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+      t.remove();
+    }
+    this.toast(ok ? ['この地　この季　この刻', 'This place, this season, this hour — the link is copied'] : ['写してお持ちください', url]);
+  }
+
+  toast([jp, en]) {
+    const t = this.toastEl;
+    t.innerHTML = `<b>${jp}</b><i>${en}</i>`;
+    t.classList.remove('on');
+    void t.offsetWidth;
+    t.classList.add('on');
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => t.classList.remove('on'), 4200);
+  }
+
+  // the address bar follows the view: a change made in the dock shows at once, the drift down the river every few
+  // seconds. Not before the opening ends, so the title screen keeps the bare address
+  syncUrl(now) {
+    const { ctl, director } = this.app;
+    if (this.root.classList.contains('pre') || ctl.staticCam || ctl.turning || director.mode === 'photo') return;
+    const url = this.app.shareUrl();
+    const q = new URL(url).searchParams;
+    const key = ['s', 'h', 'w', 'mode'].map((k) => q.get(k)).join('|');
+    if (url === location.href || (key === this.urlKey && now - this.urlAt < 2500)) return;
+    this.urlKey = key;
+    this.urlAt = now;
+    history.replaceState(history.state, '', url);
   }
 
   // ------------------------------------------------------------ per-frame state (throttled)
@@ -459,5 +541,6 @@ export class UI {
     this.sailBtn.classList.toggle('on', moored);
     this.holdBtn.firstChild.textContent = moored ? '行' : '止';
     this.soundBtn.classList.toggle('on', !!ctl.sound);
+    this.syncUrl(now);
   }
 }

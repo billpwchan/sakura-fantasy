@@ -119,6 +119,7 @@ async function boot() {
     season: parseInt(params.get('s') ?? '0'),
     staticCam: params.has('cam'),
     loopFade: 0,
+    z: 0,
     capture: null,
     sound: false,
   };
@@ -159,6 +160,18 @@ async function boot() {
     setAutoWeather(on) { ctl.autoWeather = on; },
     togglePause() { journey.target = journey.target > 0 ? 0 : journey.cruise; },
     capture() { return new Promise((res) => { ctl.capture = res; }); },
+    // the address of this moment: place and season always; the hour and weather only when chosen by hand, since
+    // otherwise they follow from the place and a frozen hour would stop the recipient's day
+    shareUrl() {
+      const q = new URLSearchParams(location.search);
+      for (const k of ['z', 's', 'h', 'w', 'mode', 'intro']) q.delete(k);
+      q.set('z', String(Math.round(ctl.z)));
+      q.set('s', String(ctl.season));
+      if (!ctl.autoTime) q.set('h', env.hours.toFixed(1));
+      if (!ctl.autoWeather) q.set('w', env.weather);
+      if (director.mode === 'seat' || director.mode === 'cinema') q.set('mode', director.mode);
+      return `${location.origin}${location.pathname}?${q}`;
+    },
     toggleSound() {
       if (!sound.ctx) sound.start(); else sound.setOn(!sound.on);
       ctl.sound = sound.on;
@@ -243,7 +256,9 @@ async function boot() {
   let last = performance.now();
   const clock = { t: 0 };
   function frame(now) {
-    const dtMs = Math.min(100, now - last);
+    // a frame's timestamp is when it began, which can be before the clock read at the end of a long boot: never
+    // let time run backwards (eased values would overshoot their bounds)
+    const dtMs = Math.max(0, Math.min(100, now - last));
     last = now;
     const dt = dtMs / 1000;
     clock.t += dt;
@@ -253,6 +268,7 @@ async function boot() {
     journey.steer = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
     journey.thrust = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
     const pose = journey.update(dt);
+    ctl.z = pose.z;
     boat.update(dt, clock.t, pose);
     boat.seatView(director.mode === 'seat');
     water.uniforms.uBoatInv.value.copy(boat.inv);
@@ -306,7 +322,8 @@ async function boot() {
     if (ctl.capture) {
       const res = ctl.capture;
       ctl.capture = null;
-      canvas.toBlob((b) => res(b), 'image/png');
+      // copied out in the frame it was drawn, before the drawing buffer is cleared
+      ui.stamp(canvas).toBlob((b) => res(b), 'image/png');
     }
     pipe.govern(dtMs);
 
