@@ -1,0 +1,13 @@
+node_modules
+dist
+.DS_Store
+*.log
+
+# local working state: downloaded scans, Blender files, renders, perf captures
+.cache
+captures
+
+# tool and deploy settings that belong to one machine
+.claude
+.env*
+deploy/target.local

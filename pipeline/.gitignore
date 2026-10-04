@@ -1,0 +1,12 @@
+# only the scripts and their notes are kept; scans, downloads, Blender files and renders stay local
+*
+!*/
+!*.py
+!*.js
+!*.cjs
+!*.mjs
+!*.sh
+!*.md
+!package.json
+!.gitignore
+node_modules/

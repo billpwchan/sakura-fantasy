@@ -1,0 +1,49 @@
+{
+  "name": "sakura-fantasy",
+  "version": "1.0.0",
+  "description": "A boat journey down a Japanese river through four seasons and a thousand lights, rendered live in the browser with three.js.",
+  "keywords": [
+    "threejs",
+    "webgl",
+    "webgl2",
+    "real-time-rendering",
+    "procedural-generation",
+    "generative-art",
+    "creative-coding",
+    "japan",
+    "sakura",
+    "kyoto",
+    "photogrammetry",
+    "blender",
+    "web-audio"
+  ],
+  "homepage": "https://sakura.52-198-144-26.sslip.io/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/billpwchan/sakura-fantasy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/billpwchan/sakura-fantasy/issues"
+  },
+  "author": "Bill Chan",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5191",
+    "fetch-textures": "node scripts/fetch-assets.mjs",
+    "perf": "node scripts/perf.mjs",
+    "capture": "node scripts/capture.mjs"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0",
+    "vite": "^8.3.2"
+  }
+}

@@ -1,0 +1,28 @@
+services:
+  sakura:
+    image: caddy:2.10-alpine
+    container_name: sakura-fantasy
+    restart: unless-stopped
+    read_only: true
+    mem_limit: 96m
+    cpus: 0.30
+    pids_limit: 64
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - ./current:/srv:ro
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+    tmpfs:
+      - /config:uid=0,gid=0,mode=0700
+      - /data:uid=0,gid=0,mode=0700
+    networks: [gateway]
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/healthz']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+networks:
+  gateway:
+    external: true
+    name: jchart_gateway

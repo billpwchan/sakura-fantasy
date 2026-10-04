@@ -1,0 +1,5 @@
+# Sakura Fantasy owns only this hostname and this fragment.
+sakura.52-198-144-26.sslip.io {
+	encode zstd gzip
+	reverse_proxy sakura-fantasy:8080
+}

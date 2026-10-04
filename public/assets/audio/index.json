@@ -1,0 +1,212 @@
+{
+ "koto": [
+  {
+   "file": "koto_51_mf.mp3",
+   "midi": 51.0,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_51_f.mp3",
+   "midi": 51.2,
+   "layer": "f"
+  },
+  {
+   "file": "koto_54_mf.mp3",
+   "midi": 53.95,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_54_f.mp3",
+   "midi": 54.08,
+   "layer": "f"
+  },
+  {
+   "file": "koto_56_mf.mp3",
+   "midi": 56.06,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_56_f.mp3",
+   "midi": 56.16,
+   "layer": "f"
+  },
+  {
+   "file": "koto_59_mf.mp3",
+   "midi": 58.98,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_59_f.mp3",
+   "midi": 59.1,
+   "layer": "f"
+  },
+  {
+   "file": "koto_61_mf.mp3",
+   "midi": 61.38,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_62_f.mp3",
+   "midi": 61.52,
+   "layer": "f"
+  },
+  {
+   "file": "koto_63_mf.mp3",
+   "midi": 63.04,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_63_f.mp3",
+   "midi": 63.07,
+   "layer": "f"
+  },
+  {
+   "file": "koto_66_mf.mp3",
+   "midi": 65.88,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_66_f.mp3",
+   "midi": 65.91,
+   "layer": "f"
+  },
+  {
+   "file": "koto_68_mf.mp3",
+   "midi": 68.0,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_68_f.mp3",
+   "midi": 67.95,
+   "layer": "f"
+  },
+  {
+   "file": "koto_71_mf.mp3",
+   "midi": 71.02,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_71_f.mp3",
+   "midi": 70.97,
+   "layer": "f"
+  },
+  {
+   "file": "koto_73_mf.mp3",
+   "midi": 72.95,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_73_f.mp3",
+   "midi": 73.0,
+   "layer": "f"
+  },
+  {
+   "file": "koto_75_mf.mp3",
+   "midi": 75.06,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_75_f.mp3",
+   "midi": 75.01,
+   "layer": "f"
+  },
+  {
+   "file": "koto_78_mf.mp3",
+   "midi": 78.02,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_78_f.mp3",
+   "midi": 77.92,
+   "layer": "f"
+  },
+  {
+   "file": "koto_80_mf.mp3",
+   "midi": 80.04,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_80_f.mp3",
+   "midi": 79.94,
+   "layer": "f"
+  },
+  {
+   "file": "koto_83_mf.mp3",
+   "midi": 82.96,
+   "layer": "mf"
+  },
+  {
+   "file": "koto_83_f.mp3",
+   "midi": 82.88,
+   "layer": "f"
+  }
+ ],
+ "sho": [
+  {
+   "file": "sho_0.mp3",
+   "pcs": [
+    4,
+    9,
+    11
+   ],
+   "cents": -35
+  },
+  {
+   "file": "sho_1.mp3",
+   "pcs": [
+    2,
+    4,
+    7,
+    9
+   ],
+   "cents": -35
+  },
+  {
+   "file": "sho_2.mp3",
+   "pcs": [
+    11,
+    2,
+    4,
+    6,
+    7,
+    9
+   ],
+   "cents": -35
+  }
+ ],
+ "shakuhachi": {
+  "file": "shakuhachi_a4.mp3",
+  "midi": 69
+ },
+ "bonsho": [
+  "bonsho_0.mp3",
+  "bonsho_1.mp3"
+ ],
+ "keisu": "keisu.mp3",
+ "suzu": [
+  "suzu_0.mp3",
+  "suzu_1.mp3",
+  "suzu_2.mp3"
+ ],
+ "mokugyo": "mokugyo.mp3",
+ "furin": [
+  "furin_0.mp3",
+  "furin_1.mp3"
+ ],
+ "uguisu": [
+  "uguisu_0.mp3",
+  "uguisu_1.mp3",
+  "uguisu_2.mp3",
+  "uguisu_3.mp3"
+ ],
+ "shishiodoshi": "shishiodoshi.mp3",
+ "suikinkutsu": "suikinkutsu.mp3",
+ "cicadas": "cicadas.mp3",
+ "insects": "insects.mp3",
+ "suzumushi": "suzumushi.mp3",
+ "bamboo": "bamboo.mp3",
+ "gagaku": "gagaku.mp3",
+ "chant": "chant.mp3",
+ "festival": "festival.mp3",
+ "frogs": "frogs.mp3"
+}
