@@ -1,13 +1,13 @@
 <div align="center">
 
-<a href="https://sakura.52-198-144-26.sslip.io/"><img src="docs/media/hero.webp" width="100%" alt="夜明けの桜の下を、提灯をともした苫舟がゆく。低い陽が川面に映る"></a>
+<a href="https://sakura.billpwchan.art/"><img src="docs/media/hero.webp" width="100%" alt="夜明けの桜の下を、提灯をともした苫舟がゆく。低い陽が川面に映る"></a>
 
 <h1>桜幻想 &nbsp;<sub><i>Sakura Fantasy</i></sub></h1>
 
 <p><b>日本の川の谷を、小舟でゆく。四季も時刻も思いのままに、<br>ブラウザの中でリアルタイムに描く。</b></p>
 
 <p>
-<a href="https://sakura.52-198-144-26.sslip.io/"><b>旅に出る</b></a> &nbsp;·&nbsp;
+<a href="https://sakura.billpwchan.art/"><b>旅に出る</b></a> &nbsp;·&nbsp;
 <a href="docs/ARCHITECTURE.md">しくみ</a> &nbsp;·&nbsp;
 <a href="docs/SOUND.md">音楽</a> &nbsp;·&nbsp;
 <a href="README.md">English</a> &nbsp;·&nbsp;
@@ -15,7 +15,7 @@
 </p>
 
 <p>
-<a href="https://sakura.52-198-144-26.sslip.io/"><img alt="ライブデモ" src="https://img.shields.io/badge/live-demo-c0392b?style=flat-square"></a>
+<a href="https://sakura.billpwchan.art/"><img alt="ライブデモ" src="https://img.shields.io/badge/live-demo-c0392b?style=flat-square"></a>
 <a href="https://threejs.org/"><img alt="three.js r186" src="https://img.shields.io/badge/three.js-r186-1f2937?style=flat-square"></a>
 <img alt="WebGL 2" src="https://img.shields.io/badge/WebGL-2-1f2937?style=flat-square">
 <img alt="エンジンもフレームワークも不使用" src="https://img.shields.io/badge/engine-none-1f2937?style=flat-square">
@@ -146,7 +146,7 @@ URL にパラメータを付けると、オープニングを飛ばして好き�
 | `tier` | `hi` は高精細アセットを読み込み、`lo` は軽量版のまま | `tier=lo` |
 | `intro` | それでもオープニングを流す | `intro` |
 
-たとえば：[秋の夕暮れの太鼓橋](https://sakura.52-198-144-26.sslip.io/?z=-660&s=2&h=17.2)、[冬の夜の里](https://sakura.52-198-144-26.sslip.io/?z=-860&s=3&h=21)。
+たとえば：[秋の夕暮れの太鼓橋](https://sakura.billpwchan.art/?z=-660&s=2&h=17.2)、[冬の夜の里](https://sakura.billpwchan.art/?z=-860&s=3&h=21)。
 
 ## つくりかた
 

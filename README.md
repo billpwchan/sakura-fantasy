@@ -1,13 +1,13 @@
 <div align="center">
 
-<a href="https://sakura.52-198-144-26.sslip.io/"><img src="docs/media/hero.webp" width="100%" alt="A reed-roofed boat drifts under cherry trees at dawn, its lantern lit, the low sun on the water"></a>
+<a href="https://sakura.billpwchan.art/"><img src="docs/media/hero.webp" width="100%" alt="A reed-roofed boat drifts under cherry trees at dawn, its lantern lit, the low sun on the water"></a>
 
 <h1>桜幻想 &nbsp;<sub><i>Sakura Fantasy</i></sub></h1>
 
 <p><b>A boat journey through a Japanese river valley, in four seasons and at any hour,<br>rendered live in the browser.</b></p>
 
 <p>
-<a href="https://sakura.52-198-144-26.sslip.io/"><b>Take&nbsp;the&nbsp;journey</b></a> &nbsp;·&nbsp;
+<a href="https://sakura.billpwchan.art/"><b>Take&nbsp;the&nbsp;journey</b></a> &nbsp;·&nbsp;
 <a href="docs/ARCHITECTURE.md">How&nbsp;it&nbsp;works</a> &nbsp;·&nbsp;
 <a href="docs/SOUND.md">The&nbsp;score</a> &nbsp;·&nbsp;
 <a href="README.zh-CN.md">中文</a> &nbsp;·&nbsp;
@@ -15,7 +15,7 @@
 </p>
 
 <p>
-<a href="https://sakura.52-198-144-26.sslip.io/"><img alt="Live demo" src="https://img.shields.io/badge/live-demo-c0392b?style=flat-square"></a>
+<a href="https://sakura.billpwchan.art/"><img alt="Live demo" src="https://img.shields.io/badge/live-demo-c0392b?style=flat-square"></a>
 <a href="https://threejs.org/"><img alt="three.js r186" src="https://img.shields.io/badge/three.js-r186-1f2937?style=flat-square"></a>
 <img alt="WebGL 2" src="https://img.shields.io/badge/WebGL-2-1f2937?style=flat-square">
 <img alt="No engine, no framework" src="https://img.shields.io/badge/engine-none-1f2937?style=flat-square">
@@ -151,8 +151,8 @@ Any scene can be opened straight from the URL, skipping the opening:
 | `tier` | `hi` streams the full-detail assets, `lo` keeps the quick tier | `tier=lo` |
 | `intro` | play the opening anyway | `intro` |
 
-For example, [autumn dusk at the bridge](https://sakura.52-198-144-26.sslip.io/?z=-660&s=2&h=17.2) or
-[a winter night in the village](https://sakura.52-198-144-26.sslip.io/?z=-860&s=3&h=21).
+For example, [autumn dusk at the bridge](https://sakura.billpwchan.art/?z=-660&s=2&h=17.2) or
+[a winter night in the village](https://sakura.billpwchan.art/?z=-860&s=3&h=21).
 
 ## How it's made
 
@@ -187,6 +187,16 @@ pipeline/          offline asset tools (Blender, Node, Python)
 scripts/           texture fetch, perf and capture harnesses
 deploy/            Docker + Caddy deployment
 ```
+
+## More scenes
+
+The same author's other real-time scenes, each open source and running in the browser.
+
+<table><tr>
+<td width="33%" valign="top"><a href="https://github.com/billpwchan/halcyon"><img src="https://raw.githubusercontent.com/billpwchan/halcyon/main/docs/media/social-preview.jpg" alt="Halcyon"></a><br><b><a href="https://github.com/billpwchan/halcyon">Halcyon</a></b><br><sub>A tropical atoll through one day: FFT ocean, reef, bioluminescent night · <a href="https://halcyon.billpwchan.art/">live</a></sub></td>
+<td width="33%" valign="top"><a href="https://github.com/billpwchan/utsuroi"><img src="https://raw.githubusercontent.com/billpwchan/utsuroi/main/docs/media/social-preview.jpg" alt="移ろい Utsuroi"></a><br><b><a href="https://github.com/billpwchan/utsuroi">移ろい Utsuroi</a></b><br><sub>A Kyoto house and garden, walked from first light to last · <a href="https://utsuroi.billpwchan.art/">live</a></sub></td>
+<td width="33%" valign="top"><a href="https://github.com/billpwchan/neon-zenith"><img src="https://raw.githubusercontent.com/billpwchan/neon-zenith/main/docs/media/social-preview.jpg" alt="霓虹天頂 Neon Zenith"></a><br><b><a href="https://github.com/billpwchan/neon-zenith">霓虹天頂 Neon Zenith</a></b><br><sub>A rain-soaked cyberpunk Hong Kong you can fly through (WebGPU) · <a href="https://zenith.billpwchan.art/">live</a></sub></td>
+</tr></table>
 
 ## Credits
 

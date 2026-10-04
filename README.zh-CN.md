@@ -1,13 +1,13 @@
 <div align="center">
 
-<a href="https://sakura.52-198-144-26.sslip.io/"><img src="docs/media/hero.webp" width="100%" alt="黎明时分，一艘苫船在樱花树下漂行，船头灯笼已点亮，低斜的阳光洒在水面"></a>
+<a href="https://sakura.billpwchan.art/"><img src="docs/media/hero.webp" width="100%" alt="黎明时分，一艘苫船在樱花树下漂行，船头灯笼已点亮，低斜的阳光洒在水面"></a>
 
 <h1>桜幻想 &nbsp;<sub><i>Sakura Fantasy</i></sub></h1>
 
 <p><b>乘一叶小舟穿过日本的河谷。四季、晨昏，随时可选，<br>在浏览器里实时渲染。</b></p>
 
 <p>
-<a href="https://sakura.52-198-144-26.sslip.io/"><b>开始旅程</b></a> &nbsp;·&nbsp;
+<a href="https://sakura.billpwchan.art/"><b>开始旅程</b></a> &nbsp;·&nbsp;
 <a href="docs/ARCHITECTURE.md">实现原理</a> &nbsp;·&nbsp;
 <a href="docs/SOUND.md">配乐</a> &nbsp;·&nbsp;
 <a href="README.md">English</a> &nbsp;·&nbsp;
@@ -15,7 +15,7 @@
 </p>
 
 <p>
-<a href="https://sakura.52-198-144-26.sslip.io/"><img alt="在线体验" src="https://img.shields.io/badge/live-demo-c0392b?style=flat-square"></a>
+<a href="https://sakura.billpwchan.art/"><img alt="在线体验" src="https://img.shields.io/badge/live-demo-c0392b?style=flat-square"></a>
 <a href="https://threejs.org/"><img alt="three.js r186" src="https://img.shields.io/badge/three.js-r186-1f2937?style=flat-square"></a>
 <img alt="WebGL 2" src="https://img.shields.io/badge/WebGL-2-1f2937?style=flat-square">
 <img alt="不用引擎，不用框架" src="https://img.shields.io/badge/engine-none-1f2937?style=flat-square">
@@ -146,7 +146,7 @@ npm run dev          # http://127.0.0.1:5190
 | `tier` | `hi` 加载高精度资源，`lo` 只用快速档 | `tier=lo` |
 | `intro` | 照样播放开场 | `intro` |
 
-例如：[秋日黄昏的太鼓桥](https://sakura.52-198-144-26.sslip.io/?z=-660&s=2&h=17.2)，[冬夜的村落](https://sakura.52-198-144-26.sslip.io/?z=-860&s=3&h=21)。
+例如：[秋日黄昏的太鼓桥](https://sakura.billpwchan.art/?z=-660&s=2&h=17.2)，[冬夜的村落](https://sakura.billpwchan.art/?z=-860&s=3&h=21)。
 
 ## 制作方式
 
