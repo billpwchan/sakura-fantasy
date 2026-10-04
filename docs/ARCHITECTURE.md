@@ -59,11 +59,18 @@ flowchart LR
 - **The water draws after the opaque scene, from a copy of it.**
   - Refraction samples the copied colour and depth, so the river shows the stones and logs actually beneath it. The
     water absorbs light along the true optical path, not a fixed tint.
-  - Reflection is a separate half-resolution pass, distorted by flow-advected ripples.
-  - On top come the boat's Kelvin wake and bow wave, foam where the water meets the shore, petals resting on the
-    surface, and glint columns under every lantern.
+  - Reflection is a separate half-resolution pass. It is read along each pixel's reflected ray, not at a shifted
+    screen position, so ripples stretch reflections downward and break them the way real water does.
+  - Ripples too fine for a pixel are not dropped. Their slope variance becomes roughness, which blurs the reflection
+    mostly toward the viewer, by about 1/sin of the grazing angle. Far water reads as a rippled sheet, not a mirror.
+    The blur is a single anisotropic fetch from the reflection's mip chain, its footprint set to that ellipse.
+  - Roughness varies: gust patches drift downwind, the main current is rougher than the slack water by the banks,
+    and the open lake mixes glassy and darker patches.
+  - On top come the boat's Kelvin wake and bow wave, foam where the water meets the shore, bubble lines in the fast
+    current, petals resting on the surface, and glint columns under every lantern and firework.
 - **The reflection pass draws a cheaper world.** Trees reflect with their far LOD and grass is skipped (layer
-  `LAYER_NOREFL`). Ripples hide the difference, and the pass costs a fraction of the main one.
+  `LAYER_NOREFL`). Ripples hide the difference, and the pass costs a fraction of the main one. Effects that glow
+  (lanterns, wisps, fireflies, fireworks) are on `LAYER_FXREFL` and draw in it too.
 - **Post is one composite pass.**
   - Bloom is physically based: a 13-tap downsample chain, then a tent-filter upsample.
   - Sun shafts render at quarter resolution.
@@ -187,7 +194,8 @@ The layer includes:
 - the sacred tree's glow;
 - lanterns set floating on the lake;
 - sky lanterns rising from the island;
-- summer fireworks with their sound delayed by distance at 343 m/s.
+- summer fireworks with their sound delayed by distance at 343 m/s. Every burst's flash reaches the banks, the
+  haze and the sky, and the three brightest are lights the ripples glint with, as wide as the burst itself.
 
 Lit windows and lantern fireboxes in `world/architecture.js` glow through a per-vertex flag once the lamps come on.
 

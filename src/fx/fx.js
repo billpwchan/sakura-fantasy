@@ -3,7 +3,7 @@
 // and summer fireworks. All motion runs in the vertex shaders; the CPU only sets a few weights per frame.
 import * as THREE from 'three';
 import { U, UNIFORMS_GLSL, NOISE, ATMOS } from '../core/shared.js';
-import { LAYER_FX } from '../core/pipeline.js';
+import { LAYER_FX, LAYER_FXREFL } from '../core/pipeline.js';
 import { riverAt, terrainHeight, waterSd, ISLAND, LAKE } from '../world/layout.js';
 import { SITES } from '../world/sites.js';
 import { rng, smoothstep, clamp } from '../lib/math.js';
@@ -29,10 +29,12 @@ function quadGeo(count, attrs) {
   return g;
 }
 
-function fxMesh(geo, mat, name) {
+// refl: it glows, so the river shows it: drawn again in the mirror pass, where the water's ripples break it up
+function fxMesh(geo, mat, name, refl = false) {
   const m = new THREE.Mesh(geo, mat);
   m.frustumCulled = false;
   m.layers.set(LAYER_FX);
+  if (refl) m.layers.enable(LAYER_FXREFL);
   m.name = name;
   m.renderOrder = 10;
   return m;
@@ -203,21 +205,6 @@ function anchorsAlongRiver(R, n, zFrom, zTo, near, far) {
   return out;
 }
 
-// a light's image in the river: the point mirrored in the surface, laid on the water along the view ray (so the
-// banks and the hull hide it where there is no water), smeared upright by the ripples and glinting
-const MIRROR_TAIL = /* glsl */ `
-      if (p.y < 0.12 || cameraPosition.y < 0.1) I = 0.0;
-      vec3 mp = vec3(p.x, -p.y, p.z);
-      fogP = mp;
-      // pulled a fifth of the way back along the same ray (same place and size on screen) so the stretched glow
-      // clears the nearer water instead of being cut in half by it
-      float mk = (0.06 - cameraPosition.y) / (mp.y - cameraPosition.y) * 0.8;
-      p = cameraPosition + (mp - cameraPosition) * mk;
-      size *= mk;
-      sy = 2.6;
-      I *= 0.3 * (0.55 + 0.45 * sin(uTime * 9.0 + aB.x * 50.0 + p.z * 2.0));
-`;
-
 function fireflies() {
   const R = rng(77);
   const pts = anchorsAlongRiver(R, 5200, 0, -2100, 1, 22);
@@ -240,7 +227,7 @@ function fireflies() {
   `;
   const head = { vertexHead: 'uniform float uK;' };
   const mat = glowMat(uniforms, body, colour, head);
-  return { mesh: fxMesh(geo, mat, 'fireflies'), mirror: fxMesh(geo, glowMat(uniforms, body + MIRROR_TAIL, colour, head), 'fireflies-reflected'), uniforms: mat.uniforms };
+  return { mesh: fxMesh(geo, mat, 'fireflies', true), uniforms: mat.uniforms };
 }
 
 function wisps() {
@@ -277,15 +264,15 @@ function wisps() {
         col = vec3(1.0, 0.95, 0.9) * core * 4.0 + vec3(0.35, 0.65, 1.0) * (halo * 0.55 + lick * 0.6);
         col *= mix(vec3(1.0), vec3(0.75, 1.0, 0.9), vB.y);
   `);
-  return { mesh: fxMesh(geo, mat, 'wisps') };
+  return { mesh: fxMesh(geo, mat, 'wisps', true) };
 }
 
 function floatingLanterns() {
   // toro nagashi: lanterns set on the lake, carried round the island by a slow current
   const N = 150;
   const R = rng(33);
-  const geo = quadGeo(N * 2, [
-    ['aA', 4, (a, o, i) => { const j = i % N; const RR = rng(1000 + j); a[o] = RR.range(46, 150); a[o + 1] = RR.next() * Math.PI * 2; a[o + 2] = RR.next(); a[o + 3] = i < N ? 0 : 1; }],
+  const geo = quadGeo(N, [
+    ['aA', 4, (a, o, i) => { const RR = rng(1000 + i); a[o] = RR.range(46, 150); a[o + 1] = RR.next() * Math.PI * 2; a[o + 2] = RR.next(); a[o + 3] = 0; }],
     ['aB', 4, (a, o) => { a[o] = R.next(); a[o + 1] = R.next(); a[o + 2] = 0; a[o + 3] = 0; }],
   ]);
   const mat = glowMat({}, /* glsl */ `
@@ -294,29 +281,17 @@ function floatingLanterns() {
       vec3 c = vec3(${ISLAND.x.toFixed(1)}, 0.0, ${ISLAND.z.toFixed(1)});
       p = c + vec3(cos(ang) * r, 0.0, sin(ang) * r);
       p.y = 0.22 + sin(uTime * 1.3 + aA.z * 20.0) * 0.03;
-      float refl = aA.w;
-      if (refl > 0.5) p.y = -0.35;
       float d = distance(p, cameraPosition);
-      I = uSpirit * smoothstep(0.45, 0.8, uSpirit) * smoothstep(420.0, 80.0, d) * (refl > 0.5 ? 0.35 : 1.0);
-      size = refl > 0.5 ? 0.9 : 0.5;
+      I = uSpirit * smoothstep(0.45, 0.8, uSpirit) * smoothstep(420.0, 80.0, d);
+      size = 0.5;
   `, /* glsl */ `
-        float refl = step(0.5, vB.w);
-        if (vB.w < 0.5) {
-          // the paper box glowing from within, brighter at the base
-          vec2 a = abs(q);
-          float box = smoothstep(0.62, 0.55, a.x) * smoothstep(0.75, 0.68, a.y);
-          float glow = exp(-dot(q, q) * 2.2);
-          col = vec3(1.0, 0.55, 0.2) * (box * (1.6 + 1.6 * smoothstep(0.7, -0.6, q.y)) + glow * 0.35);
-        } else {
-          // its broken reflection: a soft vertical streak under the water line
-          float streak = exp(-q.x * q.x * 14.0) * smoothstep(1.0, -0.2, -q.y) * (0.6 + 0.4 * sin(q.y * 18.0 + uTime * 3.0 + vB.x * 30.0));
-          col = vec3(1.0, 0.5, 0.18) * streak * 0.8;
-        }
+        // the paper box glowing from within, brighter at the base
+        vec2 a = abs(q);
+        float box = smoothstep(0.62, 0.55, a.x) * smoothstep(0.75, 0.68, a.y);
+        float glow = exp(-dot(q, q) * 2.2);
+        col = vec3(1.0, 0.55, 0.2) * (box * (1.6 + 1.6 * smoothstep(0.7, -0.6, q.y)) + glow * 0.35);
   `);
-  // second half of the instances are the reflections; tag them in aB.w
-  const b = geo.getAttribute('aB');
-  for (let i = N; i < N * 2; i++) b.array[i * 4 + 3] = 1;
-  return { mesh: fxMesh(geo, mat, 'floating-lanterns') };
+  return { mesh: fxMesh(geo, mat, 'floating-lanterns', true) };
 }
 
 function skyLanterns() {
@@ -345,7 +320,7 @@ function skyLanterns() {
         float halo = exp(-dot(q, q) * 1.6);
         col = vec3(1.0, 0.5, 0.17) * (body * (1.0 + 1.8 * smoothstep(0.8, -0.8, q.y)) + flame * 4.0 + halo * 0.4);
   `, { vertexHead: 'uniform float uStart;' });
-  return { mesh: fxMesh(geo, mat, 'sky-lanterns'), uniforms: mat.uniforms };
+  return { mesh: fxMesh(geo, mat, 'sky-lanterns', true), uniforms: mat.uniforms };
 }
 
 // ------------------------------------------------------------------ hanabi
@@ -367,9 +342,8 @@ function fireworks() {
     uBurst: { value: Array.from({ length: SLOTS }, () => new THREE.Vector4(0, -999, 0, -999)) },
     uBurstCol: { value: Array.from({ length: SLOTS }, () => new THREE.Vector4(1, 0.5, 0.2, 0)) },
   };
-  const make = (mirror) => new THREE.ShaderMaterial({
+  const mat = new THREE.ShaderMaterial({
     uniforms,
-    defines: mirror ? { MIRROR: 1 } : {},
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
@@ -415,11 +389,6 @@ function fireworks() {
           // willow stars leave long hanging trails of burning residue
           if (kind > 0.5 && kind < 1.5) tail = min(1.2 + t * 2.2, 9.0);
         }
-        #ifdef MIRROR
-          // a star at or under the surface has no image
-          if (p.y < 0.5) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
-          p.y = -p.y; vel.y = -vel.y;
-        #endif
         vec3 v = normalize(vel + 1e-4);
         vec3 side = normalize(cross(v, normalize(p - cameraPosition)));
         // stars keep a visible size at any distance; fast ones streak
@@ -427,24 +396,8 @@ function fireworks() {
         float len = max(max(w, min(length(vel) * 0.09, 7.0)), tail);
         // the quad trails behind the star: its head sits at p
         vec3 wp = p + v * (position.y - 0.4) * len + side * position.x * w;
-        #ifdef MIRROR
-          // the star's image under the lake: each corner slides along its view ray up onto the surface,
-          // so it lands where the reflection is seen and the boat and shores still hide it
-          wp.y = min(wp.y, -0.3);
-          wp = cameraPosition + (wp - cameraPosition) * ((0.06 - cameraPosition.y) / (wp.y - cameraPosition.y));
-          vec3 c = cameraPosition + (p - cameraPosition) * ((0.06 - cameraPosition.y) / (p.y - cameraPosition.y));
-          // ripples smear each image toward the viewer and break it into flickering pieces
-          vec3 f = normalize(vec3(c.x - cameraPosition.x + 1e-4, 0.0, c.z - cameraPosition.z));
-          vec3 d = wp - c;
-          float al = dot(d, f);
-          wp = c + (d - f * al) * 1.4 + f * al * 3.0;
-          float dd = distance(c, cameraPosition);
-          wp.x += sin(c.z * 0.3 + uTime * 1.4 + c.x * 0.15) * dd * 0.004;
-          vI *= 0.2 * (0.45 + 0.55 * sin(uTime * 8.0 + c.x * 2.3 + c.z * 1.7));
-        #endif
         vUv = position.xy + 0.5;
-        // haze is taken along the path to the star itself, not to its image deep under the lake
-        vWP = vec3(p.x, abs(p.y), p.z);
+        vWP = p;
         gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
       }`,
     fragmentShader: /* glsl */ `
@@ -458,7 +411,7 @@ function fireworks() {
         gl_FragColor = vec4(vCol * a * vI * 12.0 * sfTrans(vWP), 1.0);
       }`,
   });
-  return { mesh: fxMesh(geo, make(false), 'fireworks'), mirror: fxMesh(geo, make(true), 'fireworks-reflected'), uniforms };
+  return { mesh: fxMesh(geo, mat, 'fireworks', true), uniforms };
 }
 
 const HANABI_COLS = [[1.0, 0.3, 0.45], [1.0, 0.75, 0.3], [0.5, 0.75, 1.0], [0.85, 0.4, 1.0], [1.0, 0.95, 0.85], [0.45, 1.0, 0.6]];
@@ -571,11 +524,12 @@ export function createFX(scene) {
   const fw = fireworks();
   const bd = birds();
   for (const o of [fall, ff, wi, fl, sl, fw, bd]) scene.add(o.mesh);
-  scene.add(fw.mirror);
-  scene.add(ff.mirror);
   const R = rng(123);
   let nextBurst = 0, slot = 0;
   const stats = { bursts: 0 };
+  // each live burst as a light: where its stars are, their colour, and how they burn down (the shader's fade)
+  const bursts = Array.from({ length: SLOTS }, () => ({ x: 0, y: 0, z: 0, t0: -1e9, r: 0, g: 0, b: 0, kind: 0, I: 0 }));
+  const lit = [];
 
   function update(dt, t, ctx) {
     const { env, camera, onBurst } = ctx;
@@ -605,9 +559,40 @@ export function createFX(scene) {
       const kind = R.next() < 0.25 ? 1 : R.next() < 0.18 ? 2 : 0;
       fw.uniforms.uBurst.value[slot].set(ox, oy, oz, t + 1.6);
       fw.uniforms.uBurstCol.value[slot].set(kind === 1 ? 1.0 : c[0], kind === 1 ? 0.62 : c[1], kind === 1 ? 0.25 : c[2], kind);
+      Object.assign(bursts[slot], { x: ox, y: oy, z: oz, t0: t + 1.6, r: kind === 1 ? 1.0 : c[0], g: kind === 1 ? 0.62 : c[1], b: kind === 1 ? 0.25 : c[2], kind });
       slot = (slot + 1) % SLOTS;
       stats.bursts++;
       onBurst && onBurst({ x: ox, y: oy, z: oz, at: t + 1.6 });
+    }
+    // the bursts light the lake: the brightest three as points for the water's glints, all of them summed into one
+    // flash from their direction for the banks, the boat and the haze. A burst flares as it breaks, then fades as
+    // its stars burn down and fall
+    lit.length = 0;
+    const bCol = U.uFwCol.value.set(0, 0, 0), bDir = U.uFwDir.value;
+    let dx = 0, dy = 0, dz = 0;
+    for (const b of bursts) {
+      const age = t - b.t0;
+      const willow = b.kind === 1;
+      b.I = age < 0 || age > 4.5 ? 0 : Math.exp(-age * (willow ? 0.75 : 1.3)) * smoothstep(4.5, 3.0, age) * (1 + 1.8 * Math.exp(-age * 9));
+      if (b.I < 0.01) continue;
+      lit.push(b);
+      const ex = b.x - camera.position.x, ey = b.y - 0.5 * (willow ? 9 : 5) * age * age - camera.position.y, ez = b.z - camera.position.z;
+      const d = Math.hypot(ex, ey, ez);
+      const k = b.I * 0.22 * clamp((150 / d) ** 2, 0.15, 1.2);
+      bCol.x += b.r * k; bCol.y += b.g * k; bCol.z += b.b * k;
+      dx += (ex / d) * k; dy += (ey / d) * k; dz += (ez / d) * k;
+    }
+    if (dx || dy || dz) bDir.set(dx, dy, dz).normalize();
+    lit.sort((a, b) => b.I - a.I);
+    const BL = U.uFwL.value, BC = U.uFwC.value;
+    for (let i = 0; i < BL.length; i++) {
+      const b = lit[i];
+      if (!b) { BL[i].set(0, -999, 0, 0); BC[i].set(0, 0, 0, 0); continue; }
+      const age = t - b.t0;
+      BL[i].set(b.x, b.y - 0.5 * (b.kind === 1 ? 9 : 5) * age * age, b.z, b.I);
+      // how far the stars have flown: the shader's v0 (1 - e^-drag t) / drag
+      const willow = b.kind === 1, drag = willow ? 0.9 : 1.45;
+      BC[i].set(b.r, b.g, b.b, (willow ? 44 : 60) * (1 - Math.exp(-drag * Math.max(age, 0))) / drag);
     }
   }
   return { update, stats, fw };

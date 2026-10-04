@@ -219,6 +219,8 @@ export function createSky() {
         float band = exp(-max(h, 0.0) * 10.0);
         col = mix(col, sfFogColor(rd), (1.0 - T) * mix(0.18, 1.0, band));
         col += uFlash * vec3(0.3, 0.32, 0.4) * 0.3;
+        // a firework's smoke and the haze around it, lit from inside by the burst
+        col += uFwCol * (0.02 + 0.14 * pow(max(dot(rd, uFwDir), 0.0), 10.0));
         gl_FragColor = vec4(col, 1.0);
       }`,
   });

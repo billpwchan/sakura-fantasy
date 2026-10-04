@@ -78,7 +78,8 @@ function rippleTexture(size = 256, seed = 7) {
 
 export class Reflection {
   constructor() {
-    this.rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, depthBuffer: true, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false });
+    // mipmapped and anisotropic: the water blurs its reflection by choosing the footprint of a single fetch
+    this.rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, depthBuffer: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: true, anisotropy: 8 });
     this.cam = new THREE.PerspectiveCamera();
     this.cam.matrixAutoUpdate = true;
     this.textureMatrix = new THREE.Matrix4();
@@ -182,6 +183,19 @@ export function createWater(reflection) {
       const float HULL_WL[36] = float[36](0.558, 0.574, 0.608, 0.646, 0.674, 0.685, 0.685, 0.685, 0.685, 0.685, 0.685, 0.685, 0.685, 0.685, 0.685, 0.685, 0.685, 0.685, 0.685, 0.680, 0.670, 0.651, 0.624, 0.588, 0.544, 0.491, 0.426, 0.348, 0.256, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
       uniform float uBoatK;
       uniform vec4 uOar, uEddy[8], uWake[16];
+      uniform mat4 uReflMat;
+      uniform vec4 uFwL[3];
+      uniform vec4 uFwC[3];
+
+      // where the ray leaving the surface along N lands in the mirror camera's image, taking what it reflects to lie
+      // t metres away; for a flat surface this is the plain projective lookup
+      vec2 reflUv(vec3 p, vec3 V, vec3 N, float t){
+        vec3 r = reflect(-V, N);
+        // a ray tipped below the horizon would look under the water; the floor stays below the flat reflection
+        r.y = max(r.y, 0.25 * V.y);
+        vec4 c = uReflMat * vec4(p + r * t, 1.0);
+        return c.xy / c.w;
+      }
 
       float linDepth(float d){
         float n = uNearFar.x, f = uNearFar.y;
@@ -256,6 +270,8 @@ export function createWater(reflection) {
       void main(){
         vec3 wp = vWP;
         float petPx = length(fwidth(wp.xz));
+        // the pixel's footprint on the surface, across the view and along it (taken before anything discards)
+        float footS = length(dFdx(wp.xz)), footF = length(dFdy(wp.xz));
         vec2 suv = gl_FragCoord.xy / uRes;
         float sceneZ = linDepth(texture2D(tDepth, suv).x);
         float thick = sceneZ - vViewZ;
@@ -276,13 +292,26 @@ export function createWater(reflection) {
         float bw = abs(p0 - 0.5) * 2.0;
         vec2 uvA = (wp.xz - flow * p0 * 4.5) / 7.5;
         vec2 uvB = (wp.xz - flow * p1 * 4.5) / 7.5 + 0.43;
-        vec2 nA = rip(uvA) + rip(uvA * 2.3 + 0.21) * 0.6;
-        vec2 nB = rip(uvB) + rip(uvB * 2.3 + 0.71) * 0.6;
-        vec2 n = mix(nA, nB, bw);
-        // wind ripples, not advected
+        // the finer octave turned against the coarse one, so the two never line up into a visible repeat (its slopes
+        // turned back with it: the gradient of h(Rx) is R^T grad h)
+        const mat2 ROT = mat2(0.8, -0.6, 0.6, 0.8);
+        vec2 nA = rip(uvA) + rip(ROT * uvA * 2.3 + 0.21) * ROT * 0.6;
+        vec2 nB = rip(uvB) + rip(ROT * uvB * 2.3 + 0.71) * ROT * 0.6;
+        // how rough the surface is here. Gusts drift downwind as patches of darker, rougher water (cat's paws),
+        // larger and starker on the open lake; on the river the main current ripples while the slack water along
+        // the banks lies smoother
         vec2 wdir = normalize(uWind.xy);
+        vec2 gq = wp.xz / mix(30.0, 52.0, lake) - wdir * uTime * mix(0.05, 0.03, lake);
+        float gust = sfNoise(gq) * 0.65 + sfNoise(gq * 2.3 + 5.1) * 0.35;
+        float gustK = mix(mix(0.45, 0.15, lake), mix(1.35, 1.6, lake), smoothstep(0.32, 0.72, gust));
+        float currentK = mix(mix(0.55, 1.15, smoothstep(1.0, 0.3, abs(across))), 1.0, lake);
+        // on the open lake the gusts govern all of it: glassy patches beside darker, rougher ones
+        vec2 n = mix(nA, nB, bw) * currentK * mix(1.0, gustK, 0.3 + 0.6 * lake);
+        // wind ripples, not advected
         vec2 wuv = wp.xz / 2.6 + wdir * uTime * 0.35;
-        n += rip(wuv) * (0.25 + 0.6 * uWind.z) + rip(wuv * 2.7 - wdir * uTime * 0.2) * 0.35 * uWind.z;
+        n += (rip(wuv) * (0.25 + 0.6 * uWind.z) + rip(wuv * 2.7 - wdir * uTime * 0.2) * 0.35 * uWind.z) * gustK;
+        // a long, slow undulation under the ripples, so reflections also waver at the scale of metres
+        n += rip(wp.xz / 31.0 + wdir * uTime * 0.012 + 0.37) * 0.2;
         // rain
         n += rainRings(wp.xz, uTime) * uRain * 1.4;
 
@@ -419,21 +448,49 @@ export function createWater(reflection) {
           }
         }
 
-        // ripples fade with distance so far water reads as a mirror, not noise
+        // What a pixel resolves of the ripples, and what it cannot. Ripples finer than a few pixels are averaged away
+        // by the texture's mips, but the surface is just as rough: their slopes become roughness that blurs the
+        // reflection, instead of leaving a mirror. Seen low, a pixel's footprint is long toward the viewer (dFdy) and
+        // narrow across (dFdx), so tilts toward the viewer go unresolved first, and those stretch reflections upright
         float dist = length(wp - cameraPosition);
-        float strength = mix(0.42, 0.1, smoothstep(8.0, 200.0, dist)) * mix(1.0, 0.55, lake * (1.0 - uWind.z * 0.5));
-        vec3 N = normalize(vec3(n.x * strength + wakeS.x, 1.0, n.y * strength + wakeS.y));
         vec3 V = normalize(cameraPosition - wp);
+        vec2 f2 = normalize(wp.xz - cameraPosition.xz + 1e-4);
+        vec2 s2 = vec2(-f2.y, f2.x);
+        float resF = smoothstep(0.6, 0.04, footF);
+        float resS = smoothstep(0.6, 0.04, footS);
+        float calm = mix(1.0, 0.55, lake * (1.0 - uWind.z * 0.5));
+        float amp = 0.42 * calm;
+        vec2 sl = f2 * (dot(n, f2) * amp * mix(0.35, 1.0, resF)) + s2 * (dot(n, s2) * amp * mix(0.35, 1.0, resS)) + wakeS;
+        vec3 N = normalize(vec3(sl.x, 1.0, sl.y));
+        float rough = calm * gustK * mix(currentK, 1.0, 0.4);
+        float shoreK = smoothstep(0.0, 1.0, thick);
+        float sigF = (0.003 + 0.011 * (1.0 - resF)) * rough * shoreK;
+        float sigS = (0.003 + 0.011 * (1.0 - resS)) * rough * shoreK;
         float NdV = max(dot(N, V), 0.0);
         float F = 0.02 + 0.98 * pow(1.0 - NdV, 5.0);
 
-        // reflection (planar), distorted by the ripples
-        vec2 ruv = vRefl.xy / vRefl.w + N.xz * 0.035 * smoothstep(0.0, 1.0, thick);
-        // the reflection is half resolution and alias-tested; a rotated 5-tap kernel turns stair-steps into a soft sheen
-        vec2 rtx = 1.0 / vec2(textureSize(tReflect, 0)) * (0.9 + 1.4 * smoothstep(0.0, 1.0, length(n) * strength * 4.0));
-        vec3 refl = texture2D(tReflect, ruv).rgb * 0.36
-          + (texture2D(tReflect, ruv + rtx * vec2( 0.8,  0.45)).rgb + texture2D(tReflect, ruv + rtx * vec2(-0.45,  0.8)).rgb
-           + texture2D(tReflect, ruv + rtx * vec2(-0.8, -0.45)).rgb + texture2D(tReflect, ruv + rtx * vec2( 0.45, -0.8)).rgb) * 0.16;
+        // reflection: the ray off the rippled surface followed into the mirror camera's image, so the offset is
+        // upright and long where the view is low, as on real water; then spread over the unresolved slopes (the
+        // same mapping turns that spread into upright streaks). Near the shore the surface is pinned flat so the
+        // lookup never reaches across the bank
+        // (the ripple normals are drawn steeper than real ripples, for the glitter; the reflection takes a real slope)
+        vec3 Nd = normalize(vec3(sl.x * 0.12 * shoreK, 1.0, sl.y * 0.12 * shoreK));
+        float tHit = 10.0 + dist * 0.45;
+        vec2 ruv = reflUv(wp, V, Nd, tHit);
+        // the forward difference tips the surface toward the viewer: tipped away, a grazing ray would hit the floor
+        mat2 J = mat2((reflUv(wp, V, normalize(Nd - vec3(f2.x, 0.0, f2.y) * 0.04), tHit) - ruv) / -0.04,
+                      (reflUv(wp, V, normalize(Nd + vec3(s2.x, 0.0, s2.y) * 0.04), tHit) - ruv) / 0.04);
+        // the spread is the fetch's own footprint: anisotropic filtering over the mip chain averages the ellipse J
+        // maps the slope spread to, in one fetch and without noise (a box ~3.5 sigma wide has the kernel's width)
+        vec2 rtex = 1.0 / vec2(textureSize(tReflect, 0));
+        vec2 gF = J[0] * sigF * 3.5 + vec2(0.0, rtex.y * 0.7), gS = J[1] * sigS * 3.5 + vec2(rtex.x * 0.7, 0.0);
+        // a degenerate lookup (written so a NaN fails the test) falls back to the flat mirror, and the footprint is
+        // capped: a NaN or runaway footprint would fetch black
+        if (!(abs(ruv.x) < 4.0 && abs(ruv.y) < 4.0)) ruv = vRefl.xy / vRefl.w;
+        float gm = max(length(gF), length(gS));
+        if (!(gm < 1e4)) { gF = vec2(0.0, rtex.y); gS = vec2(rtex.x, 0.0); }
+        else if (gm > 0.08) { gF *= 0.08 / gm; gS *= 0.08 / gm; }
+        vec3 refl = min(textureGrad(tReflect, clamp(ruv, 0.001, 0.999), gS, gF).rgb, vec3(64.0));
 
         // refraction through the scene copy; never pull colour from in front of the surface
         vec2 off = N.xz * 0.045 * clamp(thick / 2.0, 0.0, 1.0);
@@ -459,7 +516,11 @@ export function createWater(reflection) {
         float nh = max(dot(N, H), 0.0);
         // the sharp lobe rides the long ripple crests; a fine twinkling mask breaks those lines into glitter
         float tw = sfNoise(wp.xz * 7.0 + vec2(uTime * 1.7, -uTime * 1.1)) * 0.6 + sfNoise(wp.xz * 15.0 - vec2(uTime * 2.3, uTime * 0.7)) * 0.4;
-        float spec = pow(nh, 600.0) * 18.0 * smoothstep(0.5, 0.78, tw) * 2.8 + pow(nh, 90.0) * 0.6;
+        tw = mix(0.66, tw, resF);
+        // the lobes widen with the unresolved roughness, so far off the glitter becomes a path rather than points
+        float sig2 = sigF * sigF;
+        float eS = clamp(1.0 / (sig2 + 0.0016), 60.0, 600.0);
+        float spec = pow(nh, eS) * eS * 0.03 * smoothstep(0.5, 0.78, tw) * 2.8 + pow(nh, 90.0) * 0.6;
         col += uSunCol * spec * smoothstep(-0.02, 0.05, L.y);
 
         // lantern glints: each lamp's image smeared into a column by the ripples
@@ -469,8 +530,27 @@ export function createWater(reflection) {
           float ld = length(Ld);
           if (ld > 60.0) continue;
           vec3 Hl = normalize(Ld / ld + V);
-          float g = pow(max(dot(N, Hl), 0.0), 420.0) * 4.0;
+          float eL = clamp(1.0 / (sig2 + 0.0024), 60.0, 420.0);
+          float g = pow(max(dot(N, Hl), 0.0), eL) * eL * 0.0095;
           col += uLampCol[i] * g / (1.0 + ld * ld * 0.008);
+        }
+        // fireworks: every star glints in the ripples facing it, so a burst lays a broken column of its colour on the
+        // water as wide as the burst itself. Taken as a glowing sphere: the lobe is aimed at the point of the sphere
+        // nearest the reflected ray (a representative point), with its energy spread over the sphere's size
+        vec3 Rr = reflect(-V, N);
+        for (int i = 0; i < 3; i++){
+          vec4 bl = uFwL[i];
+          if (bl.w < 0.01) continue;
+          vec3 Lc = bl.xyz - wp;
+          vec3 toRay = dot(Lc, Rr) * Rr - Lc;
+          vec3 Lp = Lc + toRay * clamp(uFwC[i].w / max(length(toRay), 1e-3), 0.0, 1.0);
+          vec3 Hb = normalize(normalize(Lp) + V);
+          float eB = clamp(1.0 / (sig2 + 0.003), 40.0, 330.0);
+          float aB = inversesqrt(eB), aW = aB + uFwC[i].w / (2.0 * length(Lc));
+          float fb = 0.02 + 0.98 * pow(1.0 - clamp(dot(V, Hb), 0.0, 1.0), 5.0);
+          // the stars thin out toward the burst's rim, so the column's edges are soft
+          float rim = 1.0 - 0.75 * smoothstep(0.35, 1.0, length(toRay) / max(uFwC[i].w, 1.0));
+          col += uFwC[i].rgb * bl.w * pow(max(dot(N, Hb), 0.0), eB) * eB * 0.006 * fb * (aB * aB / (aW * aW)) * 4.5 * rim * (0.3 + smoothstep(0.45, 0.75, tw) * 1.4);
         }
 
         // foam: hull, wake and a thin line at the shore
@@ -482,6 +562,20 @@ export function createWater(reflection) {
         vec3 bpU = (uBoatInv * vec4(cameraPosition + (wp - cameraPosition) * (sceneZ / vViewZ), 1.0)).xyz;
         float offBoat = 1.0 - (1.0 - smoothstep(0.85, 1.1, abs(bpU.x))) * step(-4.45, bpU.z) * step(bpU.z, 4.75) * step(-0.5, bpU.y);
         foam += shore * 0.55 * (1.0 - lake * 0.6) * offHull * offBoat * offOar * (0.35 + 0.65 * smoothstep(0.35, 0.8, speed));
+        // where the river runs fastest it draws its own texture: strings of fine bubbles drawn out along the current,
+        // a few metres long, broken into beads, in drifts rather than everywhere. In the river's own frame (metres off
+        // the centreline, metres down it) and carried at one speed: projecting world position on the local flow
+        // direction swings with every bend this far from the origin, and the slower banks would shear it without end
+        if (speed > 0.45 && lake < 0.99 && petPx < 0.06) {
+          vec2 fq = vec2(wp.x - rv.x, -wp.z - 0.7 * uTime);
+          float drift = smoothstep(0.5, 0.78, sfNoise(fq * vec2(0.08, 0.03) + 9.1));
+          if (drift > 0.0) {
+            vec2 lq = vec2(fq.x * 1.7, fq.y * 0.28);
+            float lines = smoothstep(0.7, 0.86, sfNoise(lq + (sfNoise(lq * 0.5 + 3.3) - 0.5) * 1.4));
+            float beads = smoothstep(0.45, 0.8, sfNoise(fq * vec2(2.5, 1.1) + 4.7)) * smoothstep(0.3, 0.7, sfNoise(fq * 6.0));
+            foam += lines * beads * drift * 0.22 * smoothstep(0.45, 0.8, speed) * (1.0 - lake) * smoothstep(0.06, 0.015, petPx) * offHull * offBoat;
+          }
+        }
         foam = clamp(foam, 0.0, 1.0) * smoothstep(0.2, 0.7, sfNoise(wp.xz * 3.1 - flow * uTime * 1.5) + foam * 0.5);
         vec3 foamCol = (uAmbUp * 0.85 + uSunCol * max(uSunDir.y, 0.0) * 0.1) * 1.05;
         col = mix(col, foamCol, foam * 0.78);

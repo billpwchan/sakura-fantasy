@@ -88,7 +88,9 @@ swap to full detail.
 - Five weathers: clear, mist, rain, storm and snow.
 - Snow that settles on boughs, roofs and banks.
 
-**Water.** The river reflects the banks and the sky. The boat leaves a Kelvin wake and a bow wave, foam gathers along
+**Water.** Reflections stretch and break in the ripples, and blur with distance as real water does, so the river
+never reads as a mirror. Gusts roughen it in drifting patches. Lanterns, fireflies and fireworks all reflect, and each
+burst lays a broken column of its colour on the water. The boat leaves a Kelvin wake and a bow wave, foam gathers along
 the shore and petals rest on the surface.
 
 **The boat and its crew.**

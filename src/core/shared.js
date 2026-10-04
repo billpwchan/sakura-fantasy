@@ -32,6 +32,12 @@ export const U = {
   uNight: { value: 0 },
   uFlash: { value: 0 },
   uFlashDir: { value: v3(0, 0.6, -0.8).normalize() },
+  // fireworks: the summed light of the live bursts as one directional flash, and each burst as a point for the
+  // water's glints (xyz, intensity; colour and radius)
+  uFwCol: { value: v3() },
+  uFwDir: { value: v3(0, 0.5, -0.8).normalize() },
+  uFwL: { value: Array.from({ length: 3 }, () => v4(0, -999, 0, 0)) },
+  uFwC: { value: Array.from({ length: 3 }, () => v4()) }, // rgb, radius of the burst (m)
   uSkyZen: { value: v3(0.1, 0.2, 0.4) },
   uSkyHor: { value: v3(0.5, 0.55, 0.6) },
   uAmbUp: { value: v3(0.3, 0.35, 0.45) },
@@ -76,7 +82,7 @@ float sfPetals(vec2 p, float dens, float px){
 
 export const UNIFORMS_GLSL = /* glsl */ `
 uniform float uTime, uMist, uSnow, uWet, uRain, uNight, uFlash, uSpirit, uLampOn;
-uniform vec3 uSunDir, uTrueSun, uMoonDir, uSunCol, uFogSun, uFogAway, uFlashDir, uSkyZen, uSkyHor, uAmbUp, uAmbDown, uViewPos;
+uniform vec3 uSunDir, uTrueSun, uMoonDir, uSunCol, uFogSun, uFogAway, uFlashDir, uSkyZen, uSkyHor, uAmbUp, uAmbDown, uViewPos, uFwCol, uFwDir;
 uniform vec4 uFogParams, uWind, uSeason, uBoat;
 uniform vec4 uLampPos[${MAX_LAMPS}];
 uniform vec3 uLampCol[${MAX_LAMPS}];
@@ -105,6 +111,8 @@ vec3 sfFogColor(vec3 rd){
   vec3 c = mix(uFogAway, uFogSun, glow);
   // lightning lights the haze from inside
   c += uFlash * vec3(0.55, 0.6, 0.8) * (0.4 + 0.6 * max(dot(rd, uFlashDir), 0.0));
+  // and a firework's burst lights the haze and its own smoke, most of all around it
+  c += uFwCol * (0.035 + 0.25 * pow(max(dot(rd, uFwDir), 0.0), 8.0));
   return c;
 }
 vec3 sfAtmos(vec3 col, vec3 wp){
@@ -231,7 +239,7 @@ export function patch(mat, opts = {}) {
         #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
           sfShadow = getShadow(directionalShadowMap[0], directionalLightShadows[0].shadowMapSize, directionalLightShadows[0].shadowIntensity, directionalLightShadows[0].shadowBias, directionalLightShadows[0].shadowRadius, vDirectionalShadowCoord[0]);
         #endif
-        reflectedLight.directDiffuse += BRDF_Lambert(material.diffuseColor) * (sfLamps(vSfWP, sfNW, ${(opts.wrap ?? 0).toFixed(2)}) + uFlash * vec3(1.1, 1.2, 1.5) * max(dot(sfNW, uFlashDir) * 0.6 + 0.4, 0.0));
+        reflectedLight.directDiffuse += BRDF_Lambert(material.diffuseColor) * (sfLamps(vSfWP, sfNW, ${(opts.wrap ?? 0).toFixed(2)}) + uFlash * vec3(1.1, 1.2, 1.5) * max(dot(sfNW, uFlashDir) * 0.6 + 0.4, 0.0) + uFwCol * max(dot(sfNW, uFwDir) * 0.7 + 0.3, 0.0));
         ${hooks.light || ''}`
       )
       .replace('#include <fog_fragment>', `gl_FragColor.rgb = mix(sfAtmos(gl_FragColor.rgb, vSfWP), gl_FragColor.rgb, smoothstep(0.0, -0.35, vSfWP.y));\n${hooks.post || ''}`);

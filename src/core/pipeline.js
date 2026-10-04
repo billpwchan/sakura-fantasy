@@ -6,6 +6,7 @@ import { Reflection, LAYER_WATER } from '../world/water.js';
 
 export const LAYER_FX = 2; // transparent effects, drawn after the water, not reflected
 export const LAYER_NOREFL = 3; // opaque but skipped by the mirror pass (grass, small props)
+export const LAYER_FXREFL = 4; // effects that glow (lanterns, wisps, fireflies, fireworks): also drawn in the mirror
 
 export class Pipeline {
   constructor(canvas) {
@@ -191,7 +192,7 @@ export class Pipeline {
     // mirror pass
     if (opts.reflect !== false) {
       const camY = camera.position.y;
-      if (camY > 0.05) this.reflection.render(r, scene, camera, 1 << 0);
+      if (camY > 0.05) this.reflection.render(r, scene, camera, (1 << 0) | (1 << LAYER_FXREFL));
     }
 
     // opaque world, multisampled
