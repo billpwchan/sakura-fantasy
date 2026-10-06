@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { U } from './core/shared.js';
-import { Pipeline, LAYER_NOREFL } from './core/pipeline.js';
+import { Pipeline, LAYER_NOREFL, LAYER_FX, LAYER_FXREFL } from './core/pipeline.js';
 import { loadTextures } from './core/assets.js';
 import { Environment } from './env/environment.js';
 import { createSky } from './world/sky.js';
 import { createTerrain } from './world/terrain.js';
 import { generateWorld } from './world/generate.js';
 import { createGrass } from './world/grass.js';
-import { createWater } from './world/water.js';
+import { createWater, LAYER_WATER } from './world/water.js';
 import './world/sites.js';
 import { createFoliageTextures } from './world/foliage-tex.js';
 import { createTrees, createSacredTree } from './world/trees.js';
@@ -29,6 +29,88 @@ const params = new URLSearchParams(location.search);
 const dbg = params.get('dbg') || '';
 // any scene set in the URL goes straight in, without the loader and the opening
 const direct = params.size > 0 && !params.has('intro');
+
+// Linking ~100 programs inside the first frame froze the loader for seconds (15 s and more on Windows/ANGLE in the
+// field). compileAsync links them in parallel off the main thread instead. Programs are keyed by light count, and
+// the sun and sky light sit on layer 0 only, so the passes that see layer 0 and the water/effects pass each get
+// their own variants; every pass draws into a render target, which also picks the variant.
+async function warmShaders(pipe, scene, camera) {
+  const renderer = pipe.renderer;
+  const passes = [(1 << 0) | (1 << LAYER_NOREFL) | (1 << LAYER_FXREFL), (1 << LAYER_WATER) | (1 << LAYER_FX)];
+  const mask = camera.layers.mask;
+  const prev = renderer.getRenderTarget();
+  renderer.setRenderTarget(pipe.rtOpaque);
+  const jobs = passes.map((m) => {
+    const list = [];
+    scene.traverse((o) => { if (o.material && (o.layers.mask & m)) list.push(o); });
+    // compile() walks its first argument for materials and takes lights and fog from the target scene
+    const subset = new THREE.Object3D();
+    subset.traverse = (cb) => list.forEach(cb);
+    camera.layers.mask = m;
+    return renderer.compileAsync(subset, camera, scene);
+  });
+  camera.layers.mask = mask;
+  renderer.setRenderTarget(prev);
+  const t = performance.now();
+  await Promise.all(jobs);
+  console.log(`[sf] shaders ${renderer.info.programs.length} programs ready in ${(performance.now() - t).toFixed(0)}ms`);
+
+  // A texture uploads the first time it is drawn, so the first mirror pass also spent about a second uploading.
+  // One texture per task instead keeps the loader answering clicks between uploads. Render-target textures are
+  // allocated by their targets and stay out of this.
+  const textures = new Set();
+  const add = (v) => { if (v?.isTexture && !v.isRenderTargetTexture && v.image) textures.add(v); };
+  scene.traverse((o) => {
+    const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+    for (const m of mats) {
+      for (const v of Object.values(m)) add(v);
+      // the compiled uniforms, which include what onBeforeCompile injected (the shared world uniforms among them)
+      const uniforms = renderer.properties.get(m).uniforms || m.uniforms;
+      if (uniforms) for (const u of Object.values(uniforms)) Array.isArray(u.value) ? u.value.forEach(add) : add(u.value);
+    }
+  });
+  const t2 = performance.now();
+  let worst = 0;
+  for (const tex of textures) {
+    const s = performance.now();
+    renderer.initTexture(tex);
+    worst = Math.max(worst, performance.now() - s);
+    await new Promise((r) => setTimeout(r));
+  }
+  console.log(`[sf] ${textures.size} textures uploaded in ${(performance.now() - t2).toFixed(0)}ms, longest ${worst.toFixed(0)}ms`);
+
+  // The first draw of each object still pays for its buffers and the GPU pipeline state of each pass (and the shadow
+  // pass links its depth programs then), which left a second-long first frame. Drawing the world a slice at a time
+  // through the frame's own passes spreads that over several tasks; culling is off so nothing waits for its first
+  // time in view. The shadow map is left due, so the first real frame redraws it whole.
+  const objs = [];
+  scene.traverse((o) => { if (o.material && o.visible) objs.push(o); });
+  const culled = objs.map((o) => o.frustumCulled);
+  const slices = 8;
+  const t3 = performance.now();
+  worst = 0;
+  for (let k = 0; k < slices; k++) {
+    const s = performance.now();
+    objs.forEach((o, i) => { o.visible = i % slices === k; o.frustumCulled = false; });
+    renderer.shadowMap.needsUpdate = true;
+    pipe.reflection.primed = false;
+    pipe.reflection.render(renderer, scene, camera, passes[0] & ~(1 << LAYER_NOREFL));
+    renderer.setRenderTarget(pipe.rtOpaque);
+    camera.layers.mask = (1 << 0) | (1 << LAYER_NOREFL);
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(pipe.rtMain);
+    camera.layers.mask = passes[1];
+    renderer.render(scene, camera);
+    worst = Math.max(worst, performance.now() - s);
+    await new Promise((r) => setTimeout(r));
+  }
+  objs.forEach((o, i) => { o.visible = true; o.frustumCulled = culled[i]; });
+  camera.layers.mask = mask;
+  renderer.setRenderTarget(prev);
+  pipe.reflection.primed = false;
+  renderer.shadowMap.needsUpdate = true;
+  console.log(`[sf] world drawn once in ${slices} slices, ${(performance.now() - t3).toFixed(0)}ms, longest ${worst.toFixed(0)}ms`);
+}
 
 async function boot() {
   const canvas = document.getElementById('c');
@@ -341,6 +423,7 @@ async function boot() {
   }
 
   window.__sf = { env, camera, pipe, scene, U, journey, director, boat, app, fx, ui, sound, terrainHeight, THREE };
+  await warmShaders(pipe, scene, camera);
   ui.attach(app);
   if (direct) {
     ui.skip();
