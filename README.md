@@ -72,6 +72,8 @@ the boughs.</sub></p>
 
 Each place opens with a classical haiku chosen for it and for the season.
 
+Thirteen of these scenes are free to download as **[4K wallpapers](https://github.com/billpwchan/sakura-fantasy/releases/tag/wallpapers-4k)** (3840×2160, straight from the renderer).
+
 ## What's inside
 
 **Real plants.** Leaves, blossom and grasses are rendered in Blender into photo atlases (colour, AO and normal), from

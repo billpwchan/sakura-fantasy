@@ -70,6 +70,8 @@
 
 每到一处，都会展开一张章节卡，上面是一首为此地、此季挑选的古典俳句。
 
+其中 13 个场景可以免费下载 **[4K 壁纸](https://github.com/billpwchan/sakura-fantasy/releases/tag/wallpapers-4k)**（3840×2160，渲染器直出）。
+
 ## 里面有什么
 
 **真实的植物。** 叶片、花朵和草都取自日本物种的 CC0 扫描：
