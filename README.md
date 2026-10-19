@@ -20,6 +20,7 @@
 <img alt="WebGL 2" src="https://img.shields.io/badge/WebGL-2-1f2937?style=flat-square">
 <img alt="No engine, no framework" src="https://img.shields.io/badge/engine-none-1f2937?style=flat-square">
 <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/code-MIT-e8a0b4?style=flat-square"></a>
+<a href="https://github.com/ruanyf/weekly/blob/master/docs/issue-415.md"><img alt="Featured in Ruan Yifeng's weekly, issue 415" src="https://img.shields.io/badge/featured%20in-%E7%A7%91%E6%8A%80%E7%88%B1%E5%A5%BD%E8%80%85%E5%91%A8%E5%88%8A%20%23415-c0392b?style=flat-square"></a>
 </p>
 
 </div>
