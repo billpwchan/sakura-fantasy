@@ -6,6 +6,29 @@
 :8080 {
 	root * /srv
 	encode zstd gzip
+	# One JSON line per page view, so visits can be counted by the ?ref= in the uri. Addresses are dropped:
+	# the peer, client and forwarded IPs and the headers that carry them never reach the log.
+	log {
+		output stdout
+		format filter {
+			wrap json
+			request>remote_ip delete
+			request>remote_port delete
+			request>client_ip delete
+			request>headers>Cf-Connecting-Ip delete
+			request>headers>Cf-Connecting-Ipv6 delete
+			request>headers>Cf-Pseudo-Ipv4 delete
+			request>headers>True-Client-Ip delete
+			request>headers>X-Forwarded-For delete
+			request>headers>X-Real-Ip delete
+			request>headers>Forwarded delete
+			request>headers>Cookie delete
+			request>tls delete
+			resp_headers delete
+		}
+	}
+	@notpage not path / /index.html
+	log_skip @notpage
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
