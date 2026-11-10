@@ -24,11 +24,13 @@
   html, body { margin: 0; height: 100%; background: #07090b; overflow: hidden; }
   canvas#c { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; outline: none; }
   #load { position: fixed; inset: 0; background: #0b0a0d; z-index: 5; }
+  /* painted before the bundle arrives; buildLoader replaces it */
+  #load .boot { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding-left: 0.5em; font: 800 20px 'Shippori Mincho B1', serif; letter-spacing: 0.5em; color: #f3ede2; opacity: 0.4; }
 </style>
 </head>
 <body>
 <canvas id="c" tabindex="0"></canvas>
-<div id="load"></div>
+<div id="load"><div class="boot">桜幻想</div></div>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>
