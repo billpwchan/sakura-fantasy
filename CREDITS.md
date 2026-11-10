@@ -105,7 +105,7 @@ The haiku are classical and in the public domain:
 
 ## Fonts
 
-The interface fonts are served by Google Fonts under the [SIL Open Font License](https://openfontlicense.org):
+The interface fonts are self-hosted from `public/fonts` under the [SIL Open Font License](https://openfontlicense.org), with the licence texts beside them (Shippori Mincho B1 is cut to the characters the site uses):
 - Shippori Mincho B1;
 - Cormorant Garamond.
 
