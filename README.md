@@ -194,6 +194,10 @@ scripts/           texture fetch, perf and capture harnesses
 deploy/            Docker + Caddy deployment
 ```
 
+## Made with Claude Code
+
+Built with [Claude Code](https://claude.com/claude-code). I set the direction and reviewed every pass from screenshots and real-GPU frame timings; the model wrote the code, the shaders, the Blender asset scripts and the audio build.
+
 ## More scenes
 
 The same author's other real-time scenes, each open source and running in the browser.
